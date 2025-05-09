@@ -33,7 +33,7 @@ unsigned long fallDetectedTime = 0;
 unsigned long lastCallTime = 0;
 bool fallDetected = false;
 bool callActive = false;
-const unsigned long callDelay = 30000;  // 3 phút
+const unsigned long callDelay = 30000;  // 30 giây
 const unsigned long warningInterval = 60000;  // 1 phút
 
 void setup() {
@@ -52,9 +52,12 @@ void setup() {
     mpu.setGyroRange(MPU6050_RANGE_500_DEG);
     mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
     delay(100);
+
+    // Thiết lập chân cho cảm biến và còi
     pinMode(TRIG_PIN, OUTPUT);
     pinMode(ECHO_PIN, INPUT);
     pinMode(BUZZER_PIN, OUTPUT);
+
     // Cấu hình SIM800A
     Serial.println(F("[SETUP] Initializing SIM800A..."));
     sendATCommand("AT", 500);
@@ -115,6 +118,7 @@ void sendMessage() {
     Serial.println(phoneNum);
     Serial.flush();
 }
+
 void readUltrasonicSensor() {
     digitalWrite(TRIG_PIN, LOW);
     delayMicroseconds(2);
@@ -129,8 +133,8 @@ void readUltrasonicSensor() {
     Serial.print(distance);
     Serial.println(" cm");
 
-    if (distance < 60) {
-        int buzzerIntensity = map(distance, 0, 60, 255, 50);
+    if (distance < 90) {
+        int buzzerIntensity = map(distance, 0, 90, 255, 50);
         analogWrite(BUZZER_PIN, buzzerIntensity);
     } else {
         digitalWrite(BUZZER_PIN, LOW);
@@ -221,13 +225,14 @@ void readMPU6050() {
     Serial.print(F(", Y: "));
     Serial.println(angleY);
 
-    if (acc_total < 5.0) {  // Phát hiện va chạm
+    if (acc_total < 6.0) {  // hát hiện va chạm
         strcpy(message, "Collision detected!");
-        analogWrite(BUZZER_PIN, HIGH);
-        delay(5000);
+        analogWrite(BUZZER_PIN, 255);  // Kích hoạt còi ở mức tối đa (PWM)
         Serial.println(message);
         sendMessage();
         lastWarningTime = millis();
+        delay(5000);  // Giữ còi kêu trong 5 giây
+        analogWrite(BUZZER_PIN, 0);  // Tắt còi
 
         if (abs(angleX) > 45 || abs(angleY) > 45) {  // Phát hiện ngã
             strcpy(message, "Fall detected!");
